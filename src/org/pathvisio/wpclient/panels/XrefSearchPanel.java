@@ -1,6 +1,6 @@
 // PathVisio WP Client
 // Plugin that provides a WikiPathways client for PathVisio.
-// Copyright 2013 developed for Google Summer of Code
+// Copyright 2013-2016 developed for Google Summer of Code
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); 
 // you may not use this file except in compliance with the License. 
@@ -26,7 +26,9 @@ import java.net.MalformedURLException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.AbstractAction;
@@ -41,7 +43,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.SwingWorker;
-import javax.swing.table.TableRowSorter;
 import javax.xml.rpc.ServiceException;
 
 import org.bridgedb.DataSource;
@@ -185,110 +186,94 @@ public class XrefSearchPanel extends JPanel {
 		pxXref.clear();
 		if (!txtId.getText().isEmpty()) {
 			System.out.println(txtId.getText());
-//			if(Validator.CheckNonAlphaAllowColon(txtId.getText())) {
-
-				final ProgressKeeper pk = new ProgressKeeper();
-				final ProgressDialog d = new ProgressDialog(JOptionPane.getFrameForComponent(this), "", pk, true, true);
+			final ProgressKeeper pk = new ProgressKeeper();
+			final ProgressDialog d = new ProgressDialog(JOptionPane.getFrameForComponent(this), "", pk, true, true);
 	
-				SwingWorker<WSResult[], Void> sw = new SwingWorker<WSResult[], Void>() {
-					
-					WSResult[] results;
-
-					protected WSResult[] doInBackground() throws Exception {
-						pk.setTaskName("Starting Search");
+			SwingWorker<WSResult[], Void> sw = new SwingWorker<WSResult[], Void>() {
+				WSResult[] results;
+				protected WSResult[] doInBackground() throws Exception {
+					pk.setTaskName("Starting Search");
 	
-						try {
-							String[] xrefids = txtId.getText().split("\n");
+					try {
+						String[] xrefids = txtId.getText().split("\n");
 						
-							if (xrefids.length < 6) {
-								int count = 0;
-								for (String x : xrefids) {
-									String p[] = x.split(":");
-									if (p.length == 2) {
-										DataSource ds =DataSource.getBySystemCode(p[0]);
-										pxXref.add(new Xref(p[1], ds));
-									} else {
-										JOptionPane.showMessageDialog(
-												XrefSearchPanel.this,
-												"Enter Valid Xrefs ", "Error",
-												JOptionPane.ERROR_MESSAGE);
-										pk.finished();
-										return results;
-									}
-									count++;
+						if (xrefids.length < 6) {
+							int count = 0;
+							for (String x : xrefids) {
+								String p[] = x.split(":");
+								if (p.length == 2) {
+									DataSource ds = DataSource.getExistingBySystemCode(p[0]);
+									pxXref.add(new Xref(p[1], ds));
+								} else {
+									JOptionPane.showMessageDialog(XrefSearchPanel.this, "Enter Valid Xrefs ", "Error", JOptionPane.ERROR_MESSAGE);
+									pk.finished();
+									return results;
 								}
-	
-								xrefs = new Xref[count];
-								pxXref.toArray(xrefs);
-	
-								pk.setTaskName("Searching ");
-								WSSearchResult[] p = plugin.getWpQueries().findByXref(xrefs, pk);
-								pk.setTaskName("Sorting result");
-								results = sort(p);
-							} else {
-								JOptionPane.showMessageDialog(XrefSearchPanel.this,
-										" Can have maximum 5 Xrefs ", "Error",
-										JOptionPane.ERROR_MESSAGE);
-								pk.finished();
-								return results;
+								count++;
 							}
-						} finally {
+	
+							xrefs = new Xref[count];
+							pxXref.toArray(xrefs);
+	
+							pk.setTaskName("Searching ");
+							WSSearchResult[] p = plugin.getWpQueries().findByXref(xrefs, pk);
+							pk.setTaskName("Sorting result");
+							results = sort(p);
+						} else {
+							JOptionPane.showMessageDialog(XrefSearchPanel.this, " Can have maximum 5 Xrefs ", "Error", JOptionPane.ERROR_MESSAGE);
 							pk.finished();
+							return results;
 						}
-						return results;
+					} finally {
+						pk.finished();
 					}
+					return results;
+				}
 
-					private WSResult[] sort(WSSearchResult [] results) throws RemoteException, FailedConnectionException {
-						
-						List<WSResult> result = new ArrayList<WSResult>();
-						for(WSSearchResult res : results) {
-							WSResult wsResult = new WSResult();
+				private WSResult[] sort(WSSearchResult [] results) throws RemoteException, FailedConnectionException {
+					Map<String, WSResult> result = new HashMap<String, WSResult>();
+					for(WSSearchResult res : results) {
+						WSResult wsResult = new WSResult();
+						if(!result.containsKey(res.getId())) {
 							wsResult.setWsSearchResult(res);
 							int count = 0;
 							for (Xref x : pxXref) {
 								String [] li = plugin.getWpQueries().getXrefList(res.getId(), x.getDataSource(), pk);
-								System.out.println(res.getId() + "\t" + x.getDataSource().getSystemCode() + "\t" + li.length);
 								for(String s : li) {
-									System.out.println(s);
 									if(s.equals(x.getId())) {
 										count++;
 									}
 								}
 							}
 							wsResult.setCount(count);
-							result.add(wsResult);
+							result.put(res.getId(), wsResult);
 						}
-						
-						Collections.sort(result);
-						WSResult [] finalresults = new WSResult[result.size()];
-						finalresults = result.toArray(finalresults);
-						
-						return finalresults;
 					}
+					List<WSResult> list = new ArrayList<WSResult>();
+					list.addAll(result.values());
+					Collections.sort(list, Collections.reverseOrder());
+					WSResult [] finalresults = new WSResult[list.size()];
+					finalresults = list.toArray(finalresults);
+						
+					return finalresults;
+				}
 
-					protected void done() {
-						if (!pk.isCancelled()) {
-							if (results.length == 0) {
-								JOptionPane.showMessageDialog(plugin.getDesktop().getFrame(),
-									"0 results found");
-							}
-						} else if (pk.isCancelled()) {
-							pk.finished();
+				protected void done() {
+					if (!pk.isCancelled()) {
+						if (results.length == 0) {
+							JOptionPane.showMessageDialog(plugin.getDesktop().getFrame(), "0 results found");
 						}
+					} else if (pk.isCancelled()) {
+						pk.finished();
 					}
-				};
+				}
+			};
 			
-				sw.execute();
-				d.setVisible(true);
+			sw.execute();
+			d.setVisible(true);
 			
-				resultTable.setModel(new XrefResultTableModel(sw.get()));
-				resultTable.setRowSorter(new TableRowSorter(resultTable.getModel()));
-				lblNumFound.setText(sw.get().length + " pathways found.");
-//			} else {
-//				JOptionPane.showMessageDialog(XrefSearchPanel.this,
-//						"Please Enter valid ID", "Error", JOptionPane.ERROR_MESSAGE);
-//
-//			}
+			resultTable.setModel(new XrefResultTableModel(sw.get()));
+			lblNumFound.setText(sw.get().length + " pathways found.");
 		} else {
 			JOptionPane.showMessageDialog(XrefSearchPanel.this,
 					"Please Enter ID", "Error", JOptionPane.ERROR_MESSAGE);

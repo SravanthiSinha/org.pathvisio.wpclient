@@ -1,6 +1,6 @@
 // PathVisio WP Client
 // Plugin that provides a WikiPathways client for PathVisio.
-// Copyright 2013 developed for Google Summer of Code
+// Copyright 2013-2016 developed for Google Summer of Code
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); 
 // you may not use this file except in compliance with the License. 
@@ -26,7 +26,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.table.TableRowSorter;
 import javax.xml.rpc.ServiceException;
 
 import org.bridgedb.Xref;
@@ -53,9 +52,7 @@ public class PathwayPanel extends JPanel {
 
 		// Center contains table model for results
 		resultTable = new JTable();
-		
 		resultTable.setModel(new ResultTableModel(wsp));
-		resultTable.setRowSorter(new TableRowSorter(resultTable.getModel()));
 		
 		resultspane = new JScrollPane(resultTable);
 

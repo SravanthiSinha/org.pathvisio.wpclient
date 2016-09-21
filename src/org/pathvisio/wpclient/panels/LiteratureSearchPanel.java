@@ -1,6 +1,6 @@
 // PathVisio WP Client
 // Plugin that provides a WikiPathways client for PathVisio.
-// Copyright 2013 developed for Google Summer of Code
+// Copyright 2013-2016 developed for Google Summer of Code
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); 
 // you may not use this file except in compliance with the License. 
@@ -37,7 +37,6 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingWorker;
 import javax.swing.table.AbstractTableModel;
-import javax.swing.table.TableRowSorter;
 import javax.xml.rpc.ServiceException;
 
 import org.pathvisio.core.debug.Logger;
@@ -191,7 +190,6 @@ public class LiteratureSearchPanel extends JPanel {
 				d.setVisible(true);
 	
 				resultTable.setModel(new LiteratureResultTableModel(sw.get()));
-				resultTable.setRowSorter(new TableRowSorter(resultTable.getModel()));
 				lblNumFound.setText(sw.get().length + " pathways found.");
 			} else {
 				JOptionPane.showMessageDialog(plugin.getDesktop().getFrame(), "Please Enter a Valid Query","Error", JOptionPane.ERROR_MESSAGE);

@@ -1,6 +1,6 @@
 // PathVisio WP Client
 // Plugin that provides a WikiPathways client for PathVisio.
-// Copyright 2013 developed for Google Summer of Code
+// Copyright 2013-2016 developed for Google Summer of Code
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); 
 // you may not use this file except in compliance with the License. 
@@ -26,7 +26,6 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.rmi.RemoteException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
